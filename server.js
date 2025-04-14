@@ -12,6 +12,7 @@ const whatsappRoutes = require('./routes/whatsapp.routes');
 const commissionRoutes = require('./routes/commission.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const { verifyEmailConnection } = require('./utils/emailService');
+const agentsRoutes = require('./routes/agents.routes');
 const app = express();
 
 // Development CORS - izinkan semua origin
@@ -55,6 +56,7 @@ app.use('/api/documents', documentRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/commission', commissionRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/agents', agentsRoutes);
 
 // Base API route
 app.get('/api/', (req, res) => {
