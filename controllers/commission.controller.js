@@ -11,7 +11,7 @@ exports.calculateCommission = async (jamaahId, packagePrice) => {
             include: [{
                 model: User,
                 as: 'Agent',
-                include: [{ model: AgentTier }]
+            include: [{ model: AgentTier }]
             }]
         });
 
@@ -33,12 +33,12 @@ exports.calculateCommission = async (jamaahId, packagePrice) => {
 
         if (commission) {
             await commission.update({
-                commissionAmount,
-                status: 'PENDING'
-            });
+            commissionAmount,
+            status: 'PENDING'
+        });
 
             logger.info(`Commission calculated for jamaah ${jamaahId}: ${commissionAmount}`);
-            return commission;
+        return commission;
         }
 
         return null;
@@ -184,9 +184,9 @@ exports.getMyStats = async (req, res) => {
         });
 
         // Get next tier info
-        const nextTier = await AgentTier.findOne({
-            where: {
-                minimumJamaah: {
+            const nextTier = await AgentTier.findOne({
+                where: {
+                    minimumJamaah: {
                     [Op.gt]: agent.totalJamaah || 0
                 }
             },

@@ -7,6 +7,9 @@ const AgentTier = require('./AgentTier');
 const Document = require('./Document');
 const Payment = require('./payment');
 const CommissionPayment = require('./CommissionPayment');
+const ChatRoom = require('./ChatRoom');
+const ChatMember = require('./ChatMember');
+const Message = require('./Message');
 
 // Define associations dengan foreignKey yang eksplisit
 User.belongsTo(AgentTier, { foreignKey: 'agentTierId' });
@@ -43,6 +46,21 @@ Payment.belongsTo(Registration, { foreignKey: 'registrationId' });
 // Tambahkan relasi antara User (admin) dan Payment
 User.hasMany(Payment, { foreignKey: 'verifiedBy', as: 'verifiedPayments' });
 Payment.belongsTo(User, { foreignKey: 'verifiedBy', as: 'verifier' });
+
+// Chat associations
+ChatRoom.hasMany(ChatMember, { foreignKey: 'roomId' });
+ChatMember.belongsTo(ChatRoom, { foreignKey: 'roomId' });
+
+ChatRoom.hasMany(Message, { foreignKey: 'roomId' });
+Message.belongsTo(ChatRoom, { foreignKey: 'roomId' });
+
+ChatMember.belongsTo(User, { foreignKey: 'userId' });
+User.hasMany(ChatMember, { foreignKey: 'userId' });
+
+Message.belongsTo(User, { 
+    foreignKey: 'senderId',
+    as: 'sender'
+});
 
 // Initialize associations
 const initAssociations = () => {
@@ -113,5 +131,8 @@ module.exports = {
     Document,
     Payment,
     CommissionPayment,
+    ChatRoom,
+    ChatMember,
+    Message,    
     syncModels
 }; 

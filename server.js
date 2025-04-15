@@ -13,6 +13,10 @@ const commissionRoutes = require('./routes/commission.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const { verifyEmailConnection } = require('./utils/emailService');
 const agentsRoutes = require('./routes/agents.routes');
+const financeRoutes = require('./routes/finance.routes');
+const chatRoutes = require('./routes/chat.routes');
+const initializeSocket = require('./config/socket');
+const http = require('http');
 const app = express();
 
 // Development CORS - izinkan semua origin
@@ -47,6 +51,7 @@ app.use(express.json());
 app.use('/uploads/documents', express.static('public/uploads/documents'));
 app.use('/uploads/packages', express.static('public/uploads/packages'));
 app.use('/uploads/payments', express.static('public/uploads/payments'));
+app.use('/uploads/chat', express.static('public/uploads/chat'));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -57,6 +62,8 @@ app.use('/api/whatsapp', whatsappRoutes);
 app.use('/api/commission', commissionRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/agents', agentsRoutes);
+app.use('/api/finance', financeRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Base API route
 app.get('/api/', (req, res) => {
@@ -88,9 +95,19 @@ const initializeApp = async () => {
         await db.sync();
         logger.info('Database synchronized');
 
-        // Start server
-        app.listen(PORT, () => {
+        // Create HTTP server
+        const server = http.createServer(app);
+
+        // Initialize Socket.IO
+        const io = initializeSocket(server);
+        
+        // Make io accessible in routes
+        app.set('io', io);
+
+        // Start server with Socket.IO
+        server.listen(PORT, () => {
             logger.info(`Server is running on port ${PORT}`);
+            logger.info('Socket.IO initialized');
             console.log(`Server is running on port ${PORT}`);
         });
     } catch (error) {
@@ -100,3 +117,12 @@ const initializeApp = async () => {
 };
 
 initializeApp();
+
+// Handle graceful shutdown
+process.on('SIGTERM', () => {
+    logger.info('SIGTERM signal received.');
+    server.close(() => {
+        logger.info('Server closed.');
+        process.exit(0);
+    });
+});
