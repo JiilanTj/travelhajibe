@@ -127,7 +127,7 @@ exports.startConversation = async (req, res) => {
 };
 
 // Get messages from a room
-exports.sendMessage = async (req, res) => {
+exports.getMessages = async (req, res) => {
     try {
         const { roomId } = req.params;
         const { content, type = 'TEXT' } = req.body;
