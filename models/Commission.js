@@ -41,6 +41,14 @@ Commission.init({
         type: DataTypes.ENUM('PENDING', 'APPROVED', 'PAID', 'REJECTED'),
         defaultValue: 'PENDING'
     },
+    paymentRequestId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'CommissionPayments',
+            key: 'id'
+        }
+    },
     paidAt: {
         type: DataTypes.DATE,
         allowNull: true
@@ -54,5 +62,19 @@ Commission.init({
     modelName: 'Commission',
     timestamps: true
 });
+
+Commission.associate = (models) => {
+    Commission.belongsTo(models.User, {
+        foreignKey: 'agentId',
+        as: 'Agent'
+    });
+    Commission.belongsTo(models.Registration, {
+        foreignKey: 'registrationId'
+    });
+    Commission.belongsTo(models.CommissionPayment, {
+        foreignKey: 'paymentRequestId',
+        as: 'PaymentRequest'
+    });
+};
 
 module.exports = Commission; 

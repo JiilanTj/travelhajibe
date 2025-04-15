@@ -10,6 +10,7 @@ const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const Commission = require('../models/Commission');
 
 // Configure multer for file upload
 const storage = multer.diskStorage({
@@ -80,6 +81,16 @@ exports.getPaymentInfo = async (req, res) => {
             order: [['createdAt', 'DESC']]
         });
 
+        // Get commission information if exists
+        const commission = await Commission.findOne({
+            where: { registrationId },
+            include: [{
+                model: User,
+                as: 'Agent',
+                attributes: ['fullname', 'email', 'phone']
+            }]
+        });
+
         // Calculate total paid amount
         const totalPaid = payments.reduce((sum, payment) => 
             payment.status === 'PAID' ? sum + Number(payment.amount) : sum, 
@@ -127,7 +138,21 @@ exports.getPaymentInfo = async (req, res) => {
                     url: getFullUrl(req, payment.transferProof)
                 }
             })),
-            nextPayment
+            nextPayment,
+            commission: commission ? {
+                id: commission.id,
+                status: commission.status,
+                commissionRate: Number(commission.commissionRate),
+                commissionAmount: Number(commission.commissionAmount),
+                agent: commission.Agent ? {
+                    fullname: commission.Agent.fullname,
+                    email: commission.Agent.email,
+                    phone: commission.Agent.phone
+                } : null,
+                approvedAt: commission.approvedAt,
+                paidAt: commission.paidAt,
+                notes: commission.notes
+            } : null
         };
 
         res.json({
@@ -414,6 +439,14 @@ exports.getAllPayments = async (req, res) => {
                         {
                             model: Package,
                             attributes: ['name', 'type', 'departureDate', 'price']
+                        },
+                        {
+                            model: Commission,
+                            include: [{
+                                model: User,
+                                as: 'Agent',
+                                attributes: ['fullname', 'email', 'phone']
+                            }]
                         }
                     ]
                 },
@@ -431,12 +464,28 @@ exports.getAllPayments = async (req, res) => {
 
         const transformedPayments = payments.rows.map(payment => {
             const paymentData = payment.toJSON();
+            const commission = payment.Registration.Commission;
+            
             return {
                 ...paymentData,
                 transferProof: {
                     path: payment.transferProof,
                     url: getFullUrl(req, payment.transferProof)
-                }
+                },
+                commission: commission ? {
+                    id: commission.id,
+                    status: commission.status,
+                    commissionRate: Number(commission.commissionRate),
+                    commissionAmount: Number(commission.commissionAmount),
+                    agent: commission.Agent ? {
+                        fullname: commission.Agent.fullname,
+                        email: commission.Agent.email,
+                        phone: commission.Agent.phone
+                    } : null,
+                    approvedAt: commission.approvedAt,
+                    paidAt: commission.paidAt,
+                    notes: commission.notes
+                } : null
             };
         });
 
@@ -601,10 +650,45 @@ exports.verifyPayment = async (req, res) => {
             });
 
             const packagePrice = Number(payment.Registration.Package.price);
+            
+            // Update registration status based on payment progress
+            let newRegistrationStatus;
             if (totalPaid >= packagePrice) {
+                // If fully paid, move to document review
+                newRegistrationStatus = 'DOCUMENT_REVIEW';
+            } else if (payment.type === 'DP') {
+                // If DP paid, keep in WAITING_PAYMENT for remaining amount
+                newRegistrationStatus = 'WAITING_PAYMENT';
+            }
+
+            if (newRegistrationStatus) {
                 await payment.Registration.update({
-                    status: 'PAID'
+                    status: newRegistrationStatus
+                }, { transaction });
+
+                // If fully paid, handle commission approval
+                if (totalPaid >= packagePrice) {
+                    const commission = await Commission.findOne({
+                        where: { registrationId: payment.registrationId },
+                        transaction
+                    });
+
+                    if (commission) {
+                        await commission.update({
+                            status: 'APPROVED',
+                            approvedAt: new Date(),
+                            notes: 'Automatically approved after full payment'
                         }, { transaction });
+
+                        // Increment agent's total jamaah count
+                        await User.increment('totalJamaah', {
+                            where: { id: commission.agentId },
+                            transaction
+                        });
+
+                        logger.info(`Commission approved for registration ${payment.registrationId}`);
+                    }
+                }
             }
         }
 

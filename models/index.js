@@ -6,6 +6,7 @@ const Commission = require('./Commission');
 const AgentTier = require('./AgentTier');
 const Document = require('./Document');
 const Payment = require('./payment');
+const CommissionPayment = require('./CommissionPayment');
 
 // Define associations dengan foreignKey yang eksplisit
 User.belongsTo(AgentTier, { foreignKey: 'agentTierId' });
@@ -43,6 +44,55 @@ Payment.belongsTo(Registration, { foreignKey: 'registrationId' });
 User.hasMany(Payment, { foreignKey: 'verifiedBy', as: 'verifiedPayments' });
 Payment.belongsTo(User, { foreignKey: 'verifiedBy', as: 'verifier' });
 
+// Initialize associations
+const initAssociations = () => {
+    // User associations
+    User.belongsTo(User, {
+        as: 'Agent',
+        foreignKey: 'referredBy'
+    });
+
+    User.hasMany(User, {
+        as: 'ReferredJamaah',
+        foreignKey: 'referredBy'
+    });
+
+    User.belongsTo(AgentTier, {
+        foreignKey: 'agentTierId'
+    });
+
+    // Commission associations
+    Commission.belongsTo(User, {
+        as: 'Agent',
+        foreignKey: 'agentId'
+    });
+
+    Commission.belongsTo(User, {
+        as: 'Jamaah',
+        foreignKey: 'jamaahId'
+    });
+
+    // Export the associations initialization
+    User.hasMany(Commission, {
+        as: 'AgentCommissions',
+        foreignKey: 'agentId'
+    });
+
+    User.hasMany(Commission, {
+        as: 'JamaahCommissions',
+        foreignKey: 'jamaahId'
+    });
+
+    // CommissionPayment associations
+    CommissionPayment.belongsTo(User, { as: 'Agent', foreignKey: 'agentId' });
+    CommissionPayment.belongsTo(User, { as: 'Processor', foreignKey: 'processedBy' });
+    CommissionPayment.hasMany(Commission, { foreignKey: 'paymentRequestId' });
+    Commission.belongsTo(CommissionPayment, { foreignKey: 'paymentRequestId' });
+};
+
+// Initialize all associations
+initAssociations();
+
 // Sync semua model
 const syncModels = async () => {
     try {
@@ -62,5 +112,6 @@ module.exports = {
     AgentTier,
     Document,
     Payment,
+    CommissionPayment,
     syncModels
 }; 

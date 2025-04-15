@@ -7,6 +7,8 @@ const { sendRegistrationEmail } = require('../utils/emailService');
 const { sendWhatsAppNotification } = require('../utils/whatsappService');
 const { Op } = require('sequelize');
 const { calculateCommission } = require('./commission.controller');
+const Commission = require('../models/Commission');
+const AgentTier = require('../models/AgentTier');
 
 exports.startRegistration = async (req, res) => {
     try {
@@ -47,6 +49,15 @@ exports.startRegistration = async (req, res) => {
             });
         }
 
+        // Get user with their agent info
+        const user = await User.findByPk(req.user.id, {
+            include: [{
+                model: User,
+                as: 'Agent',
+                include: [{ model: AgentTier }]
+            }]
+        });
+
         // Create registration
         const registration = await Registration.create({
             userId: req.user.id,
@@ -54,24 +65,35 @@ exports.startRegistration = async (req, res) => {
             roomType,
             roomPreferences: {
                 ...roomPreferences,
-                // Default values berdasarkan roomType
                 preferredLocation: roomType === 'SINGLE' ? 'standard' : roomPreferences?.preferredLocation,
                 tentSection: ['TENT_A', 'TENT_B'].includes(roomType) ? roomPreferences.tentSection : null,
                 dormitorySection: roomType === 'DORMITORY' ? roomPreferences.dormitorySection : null
             },
             specialRequests,
-            status: 'DRAFT'
+            status: 'DRAFT',
+            referralCode: user.referredBy ? (await User.findByPk(user.referredBy))?.referralCode : null
         });
 
         // Decrease package quota
         await package.decrement('remainingQuota');
 
-        // Calculate commission if referral code exists
-        if (req.body.referralCode) {
-            const commission = await calculateCommission(registration);
-            if (commission) {
-                logger.info(`Commission calculated for agent: ${commission.agentId}`);
-            }
+        // Create commission record if user was referred by an agent
+        if (user.Agent && user.Agent.AgentTier) {
+            const commissionRate = user.Agent.AgentTier.baseCommissionRate;
+            const commissionAmount = (Number(package.price) * commissionRate) / 100;
+
+            await Commission.create({
+                agentId: user.Agent.id,
+                jamaahId: user.id,
+                registrationId: registration.id,
+                packageId: package.id,
+                commissionRate,
+                commissionAmount,
+                status: 'PENDING',
+                packagePrice: package.price
+            });
+
+            logger.info(`Commission created for agent ${user.Agent.id} from jamaah ${user.id}`);
         }
 
         // Send notification

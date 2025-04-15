@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const { User } = require('../models');
 const logger = require('../config/logger');
 const redisClient = require('../config/redis');
 const { Op } = require('sequelize');
@@ -7,7 +7,7 @@ const { Op } = require('sequelize');
 // Register new user
 exports.register = async (req, res) => {
     try {
-        const { email, password, fullname, phone, address, role } = req.body;
+        const { email, password, fullname, phone, address, role, referralCode } = req.body;
 
         // Check if user already exists
         const userExists = await User.findOne({ where: { email } });
@@ -18,21 +18,68 @@ exports.register = async (req, res) => {
             });
         }
 
-        // Create new user
-        const user = await User.create({
+        let referredBy = null;
+        // If referral code is provided, validate it
+        if (referralCode) {
+            const agent = await User.findOne({
+                where: { 
+                    referralCode,
+                    role: 'AGEN',
+                    isActive: true
+                }
+            });
+
+            if (!agent) {
+                return res.status(400).json({
+                    status: 'error',
+                    message: 'Invalid referral code'
+                });
+            }
+
+            referredBy = agent.id;
+            logger.info(`Valid referral code from agent: ${agent.id}`);
+        }
+
+        // Create new user with referral if provided
+        const userData = {
             email,
             password,
             fullname,
             phone,
             address,
             role: role || 'JAMAAH'
+        };
+
+        if (referredBy) {
+            userData.referredBy = referredBy;
+        }
+
+        const user = await User.create(userData);
+
+        // If user is registered with referral code, update agent's stats
+        if (referredBy) {
+            await User.increment('totalJamaah', {
+                where: { id: referredBy }
+            });
+
+            logger.info(`Updated totalJamaah for agent: ${referredBy}`);
+        }
+
+        // Get user with agent information
+        const userWithReferral = await User.findOne({
+            where: { id: user.id },
+            include: [{
+                model: User,
+                as: 'Agent',
+                attributes: ['id', 'fullname', 'email']
+            }]
         });
 
         // Remove password from response
-        const userResponse = user.toJSON();
+        const userResponse = userWithReferral.toJSON();
         delete userResponse.password;
 
-        logger.info(`New user registered: ${email}`);
+        logger.info(`New user registered: ${email} ${referredBy ? 'with referral' : 'without referral'}`);
 
         res.status(201).json({
             status: 'success',
@@ -43,7 +90,8 @@ exports.register = async (req, res) => {
         logger.error('Registration error:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error registering user'
+            message: 'Error registering user',
+            error: error.message
         });
     }
 };

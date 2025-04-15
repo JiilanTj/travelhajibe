@@ -98,6 +98,14 @@ User.init({
         allowNull: true,
         unique: true
     },
+    referredBy: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'Users',
+            key: 'id'
+        }
+    },
     totalJamaah: {
         type: DataTypes.INTEGER,
         defaultValue: 0
