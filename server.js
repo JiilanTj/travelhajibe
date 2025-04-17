@@ -22,12 +22,8 @@ const app = express();
 // Development CORS - izinkan semua origin
 app.use(cors({
     origin: [
-      'http://localhost:3000',
       'http://localhost:3001',
       'https://portal.palvis.my.id',
-      'https://www.portal.palvis.my.id',
-      'https://palvis.my.id',
-      'https://www.palvis.my.id'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
