@@ -24,6 +24,7 @@ app.use(cors({
     origin: [
       'http://localhost:3001',
       'https://portal.palvis.my.id',
+      'http://69.62.75.176:3001'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
