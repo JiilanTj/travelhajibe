@@ -28,13 +28,24 @@ if (process.env.NODE_ENV === 'development') {
         credentials: true
     }));
 } else {
-    // Production CORS - lebih ketat
-    app.use(cors({
-        origin: process.env.FRONTEND_URL,
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: true
-    }));
+    // Production CORS - allow any origin to work with your existing frontend code
+    app.use((req, res, next) => {
+        // Get the origin from the request headers
+        const origin = req.headers.origin;
+        
+        // Set CORS headers
+        res.header('Access-Control-Allow-Origin', origin || '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        res.header('Access-Control-Allow-Credentials', 'true');
+        
+        // Handle preflight requests
+        if (req.method === 'OPTIONS') {
+            return res.status(204).send();
+        }
+        
+        next();
+    });
 }
 
 // Morgan middleware untuk HTTP request logging
