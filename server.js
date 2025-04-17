@@ -20,33 +20,26 @@ const http = require('http');
 const app = express();
 
 // Development CORS - izinkan semua origin
-if (process.env.NODE_ENV === 'development') {
-    app.use(cors({
-        origin: 'http://localhost:3000',
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        credentials: true
-    }));
-} else {
-    // Production CORS - allow any origin to work with your existing frontend code
-    app.use((req, res, next) => {
-        // Get the origin from the request headers
-        const origin = req.headers.origin;
-        
-        // Set CORS headers
-        res.header('Access-Control-Allow-Origin', origin || '*');
-        res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-        res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-        res.header('Access-Control-Allow-Credentials', 'true');
-        
-        // Handle preflight requests
-        if (req.method === 'OPTIONS') {
-            return res.status(204).send();
-        }
-        
-        next();
-    });
-}
+app.use(cors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'https://portal.palvis.my.id',
+      'https://www.portal.palvis.my.id',
+      'https://palvis.my.id',
+      'https://www.palvis.my.id'
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'Accept',
+      'Origin'
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200
+  }));
 
 // Morgan middleware untuk HTTP request logging
 app.use(morgan('combined', {
