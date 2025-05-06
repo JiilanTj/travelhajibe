@@ -27,6 +27,9 @@ app.use(cors({
       'http://localhost:3000',
       'https://portal.grasindotravel.id',
       'https://grasindotravel.id',
+      'http://grasindotravel.id',
+      'https://www.grasindotravel.id',
+      'http://www.grasindotravel.id',
       'http://203.194.114.201:3000',
       'http://203.194.114.201:3001'
     ],
@@ -36,10 +39,15 @@ app.use(cors({
       'Authorization', 
       'X-Requested-With',
       'Accept',
-      'Origin'
+      'Origin',
+      'Access-Control-Allow-Headers',
+      'Access-Control-Request-Method',
+      'Access-Control-Request-Headers'
     ],
+    exposedHeaders: ['Content-Length', 'Content-Range'],
     credentials: true,
-    optionsSuccessStatus: 200
+    optionsSuccessStatus: 200,
+    preflightContinue: false
   }));
 
 // Morgan middleware untuk HTTP request logging
