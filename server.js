@@ -15,6 +15,7 @@ const { verifyEmailConnection } = require('./utils/emailService');
 const agentsRoutes = require('./routes/agents.routes');
 const financeRoutes = require('./routes/finance.routes');
 const chatRoutes = require('./routes/chat.routes');
+const blogRoutes = require('./routes/blog.routes');
 const initializeSocket = require('./config/socket');
 const http = require('http');
 const app = express();
@@ -25,6 +26,7 @@ app.use(cors({
       'http://localhost:3001',
       'https://portal.palvis.my.id',
       'http://69.62.75.176:3001/login',
+      'http://localhost:3000'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
@@ -53,6 +55,7 @@ app.use('/uploads/documents', express.static('public/uploads/documents'));
 app.use('/uploads/packages', express.static('public/uploads/packages'));
 app.use('/uploads/payments', express.static('public/uploads/payments'));
 app.use('/uploads/chat', express.static('public/uploads/chat'));
+app.use('/uploads/blog', express.static('public/uploads/blog'));
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -65,6 +68,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/agents', agentsRoutes);
 app.use('/api/finance', financeRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/blog', blogRoutes);
 
 // Base API route
 app.get('/api/', (req, res) => {

@@ -10,6 +10,8 @@ const CommissionPayment = require('./CommissionPayment');
 const ChatRoom = require('./ChatRoom');
 const ChatMember = require('./ChatMember');
 const Message = require('./Message');
+const BlogCategory = require('./BlogCategory');
+const BlogPost = require('./BlogPost');
 
 // Define associations dengan foreignKey yang eksplisit
 User.belongsTo(AgentTier, { foreignKey: 'agentTierId' });
@@ -60,6 +62,27 @@ User.hasMany(ChatMember, { foreignKey: 'userId' });
 Message.belongsTo(User, { 
     foreignKey: 'senderId',
     as: 'sender'
+});
+
+// Blog associations
+BlogPost.belongsTo(User, {
+    foreignKey: 'authorId',
+    as: 'author'
+});
+
+User.hasMany(BlogPost, {
+    foreignKey: 'authorId',
+    as: 'posts'
+});
+
+BlogPost.belongsTo(BlogCategory, {
+    foreignKey: 'categoryId',
+    as: 'category'
+});
+
+BlogCategory.hasMany(BlogPost, {
+    foreignKey: 'categoryId',
+    as: 'posts'
 });
 
 // Initialize associations
@@ -133,6 +156,8 @@ module.exports = {
     CommissionPayment,
     ChatRoom,
     ChatMember,
-    Message,    
+    Message,
+    BlogCategory,
+    BlogPost,
     syncModels
 }; 
