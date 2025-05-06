@@ -22,8 +22,9 @@ Package.init({
         allowNull: false
     },
     price: {
-        type: DataTypes.DECIMAL(10, 2),
-        allowNull: false
+        type: DataTypes.DECIMAL(15, 2),
+        allowNull: false,
+        comment: 'Harga dalam Rupiah'
     },
     dp: {
         type: DataTypes.INTEGER,

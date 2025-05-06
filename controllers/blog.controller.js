@@ -605,6 +605,103 @@ exports.uploadContentImage = async (req, res) => {
     }
 };
 
+// Get latest published posts
+exports.getLatestPosts = async (req, res) => {
+    try {
+        const posts = await BlogPost.findAll({
+            where: {
+                status: 'published'
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'fullname', 'email']
+                },
+                {
+                    model: BlogCategory,
+                    as: 'category'
+                }
+            ],
+            order: [['publishedAt', 'DESC']],
+            limit: 5
+        });
+
+        // Transform URLs for each post
+        const transformedPosts = posts.map(post => {
+            const postData = post.toJSON();
+            if (postData.featuredImage) {
+                postData.featuredImage = {
+                    path: postData.featuredImage,
+                    url: getFullUrl(req, postData.featuredImage)
+                };
+            }
+            return postData;
+        });
+
+        res.json({
+            status: 'success',
+            data: transformedPosts
+        });
+    } catch (error) {
+        logger.error('Get latest posts error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching latest posts'
+        });
+    }
+};
+
+// Get most popular posts
+exports.getPopularPosts = async (req, res) => {
+    try {
+        const posts = await BlogPost.findAll({
+            where: {
+                status: 'published',
+                viewCount: {
+                    [Op.gt]: 0
+                }
+            },
+            include: [
+                {
+                    model: User,
+                    as: 'author',
+                    attributes: ['id', 'fullname', 'email']
+                },
+                {
+                    model: BlogCategory,
+                    as: 'category'
+                }
+            ],
+            order: [['viewCount', 'DESC']],
+            limit: 5
+        });
+
+        // Transform URLs for each post
+        const transformedPosts = posts.map(post => {
+            const postData = post.toJSON();
+            if (postData.featuredImage) {
+                postData.featuredImage = {
+                    path: postData.featuredImage,
+                    url: getFullUrl(req, postData.featuredImage)
+                };
+            }
+            return postData;
+        });
+
+        res.json({
+            status: 'success',
+            data: transformedPosts
+        });
+    } catch (error) {
+        logger.error('Get popular posts error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: 'Error fetching popular posts'
+        });
+    }
+};
+
 module.exports = {
     createCategory: exports.createCategory,
     getAllCategories: exports.getAllCategories,
@@ -616,5 +713,7 @@ module.exports = {
     getBlogStats: exports.getBlogStats,
     uploadBlogImage,
     handleBlogUploadError,
-    uploadContentImage: exports.uploadContentImage
+    uploadContentImage: exports.uploadContentImage,
+    getLatestPosts: exports.getLatestPosts,
+    getPopularPosts: exports.getPopularPosts
 }; 

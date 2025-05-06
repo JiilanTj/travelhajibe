@@ -26,6 +26,8 @@ router.post('/upload-content-image',
 
 // Blog Post Routes
 // Public routes
+router.get('/posts/latest', blogController.getLatestPosts);
+router.get('/posts/popular', blogController.getPopularPosts);
 router.get('/posts', blogController.getAllPosts);
 router.get('/posts/:id', blogController.getPost);
 

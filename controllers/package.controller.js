@@ -203,10 +203,19 @@ exports.updatePackage = async (req, res) => {
             });
         }
 
-        const updateData = req.body;
+        // Parse JSON data from form-data
+        let updateData;
+        try {
+            updateData = req.body.data ? JSON.parse(req.body.data) : req.body;
+        } catch (error) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'Invalid JSON data format'
+            });
+        }
 
         // Handle main image
-        if (req.file) {
+        if (req.files && req.files.image && req.files.image[0]) {
             // Delete old image if exists
             if (package.image) {
                 const oldImagePath = path.join(__dirname, '../public', package.image);
@@ -214,7 +223,7 @@ exports.updatePackage = async (req, res) => {
                     logger.error('Error deleting old image:', err)
                 );
             }
-            updateData.image = `/uploads/packages/${req.file.filename}`;
+            updateData.image = `/uploads/packages/${req.files.image[0].filename}`;
         }
 
         // Handle additional images
@@ -233,16 +242,20 @@ exports.updatePackage = async (req, res) => {
             );
         }
 
+        // Update the package
         await package.update(updateData);
+        
+        // Fetch updated package to get fresh data
+        const updatedPackage = await Package.findByPk(package.id);
         
         // Transform package URLs
         const transformedPackage = {
-            ...package.toJSON(),
-            image: package.image ? {
-                path: package.image,
-                url: getFullUrl(req, package.image)
+            ...updatedPackage.toJSON(),
+            image: updatedPackage.image ? {
+                path: updatedPackage.image,
+                url: getFullUrl(req, updatedPackage.image)
             } : null,
-            additionalImages: package.additionalImages ? package.additionalImages.map(imagePath => ({
+            additionalImages: updatedPackage.additionalImages ? updatedPackage.additionalImages.map(imagePath => ({
                 path: imagePath,
                 url: getFullUrl(req, imagePath)
             })) : []
@@ -257,7 +270,7 @@ exports.updatePackage = async (req, res) => {
         logger.error('Update package error:', error);
         res.status(500).json({
             status: 'error',
-            message: 'Error updating package'
+            message: error.message || 'Error updating package'
         });
     }
 };
