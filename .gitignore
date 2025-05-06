@@ -25,14 +25,6 @@ dist/
 build/
 coverage/
 
-# Uploads
-public/uploads/*
-!public/uploads/.gitkeep
-!public/uploads/documents/.gitkeep
-!public/uploads/packages/.gitkeep
-!public/uploads/payments/.gitkeep
-!public/uploads/receipts/.gitkeep
-
 # Database
 *.sqlite
 *.sqlite3
