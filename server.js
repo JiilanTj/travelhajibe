@@ -24,9 +24,11 @@ const app = express();
 app.use(cors({
     origin: [
       'http://localhost:3001',
-      'https://portal.palvis.my.id',
-      'http://69.62.75.176:3001/login',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://portal.grasindotravel.id',
+      'https://grasindotravel.id',
+      'http://203.194.114.201:3000',
+      'http://203.194.114.201:3001'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: [
