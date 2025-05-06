@@ -380,9 +380,41 @@ exports.updatePost = async (req, res) => {
             updateData.featuredImage = `/uploads/blog/${req.file.filename}`;
         }
 
-        // Update publishedAt if status changes to published
+        // Handle status changes
         if (updateData.status === 'published' && post.status !== 'published') {
+            // If changing to published for the first time
             updateData.publishedAt = new Date();
+        } else if (updateData.status && updateData.status !== 'published') {
+            // If changing from published to draft/archived
+            updateData.publishedAt = null;
+        }
+
+        // Handle content images
+        if (updateData.content) {
+            // Find images that were in the old content but not in the new content
+            const oldImageRegex = /!\[.*?\]\(\/uploads\/blog\/(.*?)\)/g;
+            const newImageRegex = /!\[.*?\]\(\/uploads\/blog\/(.*?)\)/g;
+            
+            const oldImages = new Set();
+            const newImages = new Set();
+            
+            let match;
+            while ((match = oldImageRegex.exec(post.content)) !== null) {
+                oldImages.add(match[1]);
+            }
+            while ((match = newImageRegex.exec(updateData.content)) !== null) {
+                newImages.add(match[1]);
+            }
+
+            // Delete images that are no longer used
+            for (const oldImage of oldImages) {
+                if (!newImages.has(oldImage)) {
+                    const imagePath = path.join(__dirname, '../public/uploads/blog', oldImage);
+                    await fs.unlink(imagePath).catch(err => 
+                        logger.error('Error deleting unused content image:', err)
+                    );
+                }
+            }
         }
 
         await post.update(updateData);
@@ -425,7 +457,7 @@ exports.updatePost = async (req, res) => {
     }
 };
 
-// Delete post
+// Delete post (Hard Delete)
 exports.deletePost = async (req, res) => {
     try {
         const post = await BlogPost.findByPk(req.params.id);
@@ -445,11 +477,27 @@ exports.deletePost = async (req, res) => {
             );
         }
 
-        await post.destroy();
+        // Delete any content images from the post
+        const contentImageRegex = /!\[.*?\]\(\/uploads\/blog\/(.*?)\)/g;
+        let match;
+        while ((match = contentImageRegex.exec(post.content)) !== null) {
+            const imagePath = path.join(__dirname, '../public/uploads/blog', match[1]);
+            await fs.unlink(imagePath).catch(err => 
+                logger.error('Error deleting content image:', err)
+            );
+        }
+
+        // Hard delete the post
+        await BlogPost.destroy({
+            where: {
+                id: req.params.id
+            },
+            force: true // Ensures hard delete
+        });
 
         res.json({
             status: 'success',
-            message: 'Blog post deleted successfully'
+            message: 'Blog post and all associated images deleted successfully'
         });
     } catch (error) {
         logger.error('Delete blog post error:', error);
@@ -527,6 +575,36 @@ exports.getBlogStats = async (req, res) => {
   }
 };
 
+// Upload gambar untuk konten artikel
+exports.uploadContentImage = async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({
+                status: 'error',
+                message: 'No image file provided'
+            });
+        }
+
+        // Generate URL untuk gambar
+        const imageUrl = getFullUrl(req, `/uploads/blog/${req.file.filename}`);
+        
+        res.status(200).json({
+            status: 'success',
+            data: {
+                filename: req.file.filename,
+                path: `/uploads/blog/${req.file.filename}`,
+                url: imageUrl
+            }
+        });
+    } catch (error) {
+        logger.error('Upload content image error:', error);
+        res.status(500).json({
+            status: 'error',
+            message: error.message || 'Error uploading content image'
+        });
+    }
+};
+
 module.exports = {
     createCategory: exports.createCategory,
     getAllCategories: exports.getAllCategories,
@@ -537,5 +615,6 @@ module.exports = {
     deletePost: exports.deletePost,
     getBlogStats: exports.getBlogStats,
     uploadBlogImage,
-    handleBlogUploadError
+    handleBlogUploadError,
+    uploadContentImage: exports.uploadContentImage
 }; 

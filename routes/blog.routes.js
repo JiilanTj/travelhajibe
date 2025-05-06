@@ -15,6 +15,15 @@ router.post('/categories',
     blogController.createCategory
 );
 
+// Upload image for content
+router.post('/upload-content-image',
+    protect,
+    restrictTo('ADMIN', 'SUPERADMIN'),
+    blogController.uploadBlogImage.single('image'),
+    blogController.handleBlogUploadError,
+    blogController.uploadContentImage
+);
+
 // Blog Post Routes
 // Public routes
 router.get('/posts', blogController.getAllPosts);

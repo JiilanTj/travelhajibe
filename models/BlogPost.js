@@ -73,8 +73,7 @@ BlogPost.init({
 }, {
     sequelize,
     modelName: 'BlogPost',
-    timestamps: true,
-    paranoid: true // Enables soft delete
+    timestamps: true // Keep timestamps for createdAt and updatedAt
 });
 
 // Define associations
